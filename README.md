@@ -1,6 +1,6 @@
 # openCV-model
 openCV常用繁雜功能模組化
-穩定版本:
+#穩定版本:
 ROS noetic
 OpenCV 4.2.0
 
