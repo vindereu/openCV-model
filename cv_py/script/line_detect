@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+import sys
+import cv2 as cv
+import cv_py
+
+cap = cv.VideoCapture("/dev/video0")
+if not cap.isOpened():
+    sys.exit("open camera failed")
+
+hsv_name = "Hmin", "Smin", "Vmin", "Hmax", "Smax", "Vmax"
+hsv_count = 180, 255, 255, 180, 255, 255
+hsv_init = 0, 101, 114, 179, 188, 229
+
+HSV = cv_py.Trackbar("TRACKBAR", hsv_name, hsv_init, hsv_count)
+HSV.set_group("min", ("Hmin", "Smin", "Vmin"))
+HSV.set_group("max", ("Hmax", "Smax", "Vmax"))
+
+while True:
+    ret, frame = cap.read()
+    if ret:
+        hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        binary = cv.inRange(hsv, HSV.values("min"), HSV.values("max"))
+        morph = cv_py.morph(binary, cv.MORPH_ERODE, 5, cv.MORPH_RECT)
+        contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        index = cv_py.largest_contour(contours, 1000, 1)
+        if index:
+            for i in index:
+                if cv_py.simple_line_check(contours[i], 20, frame):
+                    cv.drawContours(frame, [contours[i]], -1, 255, 3)
+        cv.imshow("frame", frame)
+        cv.imshow("binary", binary)
+        cv.imshow("morph", morph)
+        key = cv.waitKey(1) & 0XFF
+        if key == ord('q'):
+            HSV.print_values()
+            cv.destroyAllWindows()
+            cap.release()
+            sys.exit()
+        elif key == ord(' '):
+            HSV.reset()

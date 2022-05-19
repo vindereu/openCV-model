@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+import sys
+import cv2 as cv
+import cv_py
+
+cap = cv.VideoCapture("/dev/video0")
+if not cap.isOpened():
+    sys.exit("open camera failed")
+
+WIDTH = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
+HEIGHT = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+hsv_name = "Hmin", "Smin", "Vmin", "Hmax", "Smax", "Vmax"
+hsv_count = 180, 255, 255, 180, 255, 255
+hsv_init = 0, 0, 0, 180, 255, 255
+
+roi_name = "Xmin", "Ymin", "Xmax", "Ymax"
+roi_count = WIDTH, HEIGHT, WIDTH, HEIGHT
+roi_init = 0, 0, WIDTH, HEIGHT
+
+k_size_name = "k_size"
+k_size_count = 20
+k_size_init = 5
+
+HSV = cv_py.Trackbar("TRACKBAR", hsv_name, hsv_init, hsv_count)
+HSV.set_group("min", ["Hmin", "Smin", "Vmin"])
+HSV.set_group("max", ("Hmax", "Smax", "Vmax"))
+
+ROI = cv_py.Trackbar("TRACKBAR", roi_name, roi_init, roi_count)
+ROI.set_group("min", ("Xmin", "Ymin"))
+ROI.set_group("max", ("Xmax", "Ymax"))
+ROI.set_limit("Xmin", ROI.LimitMode.LIMIT_LESS, 1, "Xmax")
+ROI.set_limit("Ymin", ROI.LimitMode.LIMIT_LESS, 1, "Ymax")
+
+K_SIZE = cv_py.Trackbar("TRACKBAR", k_size_name, k_size_init, k_size_count)
+K_SIZE.set_limit("k_size", K_SIZE.LimitMode.LIMIT_GREATER, 0)
+
+while True:
+    ret, frame = cap.read()
+    print(ret)
+    if ret:
+        frame_slice = frame[ROI.values("Ymin"):ROI.values("Ymax"),
+                            ROI.values("Xmin"):ROI.values("Xmax")]
+        hsv = cv.cvtColor(frame_slice, cv.COLOR_BGR2HSV)
+        binary = cv.inRange(hsv, HSV.values("min"), HSV.values("max"))
+        morph = cv_py.morph(binary, cv.MORPH_ERODE, K_SIZE.values("k_size"))
+        contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE,
+                                      offset=ROI.values("min"))
+
+        index = cv_py.largest_contour(contours, 1000, 2)
+        cv.rectangle(frame, ROI.values("min"), ROI.values("max"), (0, 0, 255), 2)
+        if index:
+            for i in index:
+                cv.drawContours(frame, [contours[i]], -1, (255, 0, 0), 3)
+        cv.imshow("frame", frame)
+        cv.imshow("hsv", hsv)
+        cv.imshow("binary", binary)
+        cv.imshow("morph", morph)
+
+        key = cv.waitKey(1) & 0XFF
+        if key == ord('q'):
+            HSV.print_values()
+            ROI.print_values()
+            break
+            
+        elif key == ord(' '):
+            HSV.reset()
+
+cap.release()
+cv.destroyAllWindows()

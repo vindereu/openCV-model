@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+import sys
+import cv2 as cv
+import cv_py
+
+cap = cv.VideoCapture("/dev/video0")
+if not cap.isOpened():
+    sys.exit("Open camera failed")
+
+Blur = cv_py.Trackbar("blur", "ksize", 0, 50)
+Blur.set_limit("ksize", cv_py.Trackbar.LimitMode.LIMIT_GREATER, 0)
+
+Convolution = cv_py.Trackbar("convolution", "ksize", 0, 50)
+Convolution.set_limit("ksize", cv_py.Trackbar.LimitMode.LIMIT_GREATER, 0)
+
+Gaussian = cv_py.Trackbar("gaussian", "ksize", 0, 50)
+
+Median = cv_py.Trackbar("median", "ksize", 0, 50)
+
+bilate_name = "distance", "SC", "SS"
+bilate_init = 1, 1, 1
+bilate_count = 50, 50, 50
+Bilateral = cv_py.Trackbar("bilateral", bilate_name, bilate_init, bilate_count)
+Bilateral.set_group("param", ("distance", "SC", "SS"))
+
+while True:
+    ret, frame = cap.read()
+    if ret:
+        value = Blur.values("ksize")
+        print(value)
+        blur = cv_py.blur(frame, value)
+        cv.imshow("blur", blur)
+
+        '''
+        convolution = cv_py.convolution(frame, Convolution.values("ksize"))
+        cv.imshow("convolution", convolution)
+        '''
+        
+        
+        gaussian = cv_py.gaussian(frame, 2 * Gaussian.values("ksize") + 1)
+        cv.imshow("gaussian", gaussian)
+        
+
+        '''
+        median = cv_py.median(frame, 2 * Median.values("ksize") + 1)
+        cv.imshow("median", median)
+        '''
+        
+        '''
+        # CPU算容易卡
+        bilateral = cv_py.bilateral(frame, *Bilateral.values("param"))
+        cv.imshow("bilateral", bilateral)
+        '''
+
+        cv.imshow("frame", frame)
+        key = cv.waitKey(1)
+        if key == ord('q'):
+            break
+
+cap.release()
+cv.destroyAllWindows()

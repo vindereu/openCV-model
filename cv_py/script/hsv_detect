@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+import sys
+import cv2 as cv
+import cv_py
+
+cap = cv.VideoCapture("/dev/video0")
+if not cap.isOpened():
+    sys.exit("open camera failed")
+
+hsv_name = "Hmin", "Smin", "Vmin", "Hmax", "Smax", "Vmax"
+hsv_count = 180, 255, 255, 180, 255, 255
+hsv_init = 0, 0, 0, 180, 255, 255
+
+HSV = cv_py.Trackbar("TRACKBAR", hsv_name, hsv_init, hsv_count)
+HSV.set_group("min", ("Hmin", "Smin", "Vmin"))
+HSV.set_group("max", ("Hmax", "Smax", "Vmax"))
+
+DETECT = False
+DRAW = False
+pt1 = [0, 0]
+pt2 = [1, 1]
+
+def CB_mouse(event, x, y, flag, param):
+    global pt1, pt2, DRAW, DETECT
+    if event == cv.EVENT_LBUTTONDOWN:
+        pt1 = (x, y)
+        DETECT = False
+        DRAW = False
+    elif flag == 33 and event != cv.EVENT_LBUTTONUP:
+        pt2 = (x, y)
+        DRAW = True
+    elif event == cv.EVENT_LBUTTONUP:
+        pt2 = (x, y)
+        if pt1[0] == pt2[0] or pt1[1] == pt2[1]:
+            DRAW = False
+        else:
+            pt1, pt2 = list(pt1), list(pt2)
+            pt1[0], pt2[0] = min(pt1[0], pt2[0]), max(pt1[0], pt2[0])
+            pt1[1], pt2[1] = min(pt1[1], pt2[1]), max(pt1[1], pt2[1])
+            pt1[0], pt1[1] = max(pt1[0], 0), max(pt1[1], 0)
+            pt1, pt2 = tuple(pt1), tuple(pt2)
+            DETECT = True
+
+cv.namedWindow("frame")
+cv.setMouseCallback("frame", CB_mouse)
+
+while True:
+    ret, frame = cap.read()
+    if ret:
+        hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        if DETECT:
+            roi = hsv[pt1[1]:pt2[1], pt1[0]:pt2[0]]
+            hsv_min = tuple(roi.min(axis=0).min(axis=0))
+            hsv_max = tuple(roi.max(axis=0).max(axis=0))
+            HSV.change_value("min", hsv_min)
+            HSV.change_value("max", hsv_max)
+
+        binary = cv.inRange(hsv, HSV.values("min"), HSV.values("max"))
+        morph = cv_py.morph(binary, cv.MORPH_OPEN, 5)
+        contours, _ = cv.findContours(morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        index = cv_py.largest_contour(contours, 1000, 1)
+
+        if DRAW:
+            cv.rectangle(frame, pt1, pt2, (0, 0, 255), 2)
+        if index:
+            cv.drawContours(frame, [contours[index[0]]], -1, 255, 3)
+
+        cv.imshow("frame", frame)
+        cv.imshow("binary", binary)
+        key = cv.waitKey(1) & 0XFF
+        if key == ord('q'):
+            HSV.print_values()
+            cv.destroyAllWindows()
+            cap.release()
+            sys.exit()
+        elif key == ord(' '):
+            HSV.reset()
+        elif key == ord('s'):
+            DETECT = not DETECT
