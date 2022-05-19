@@ -1,6 +1,6 @@
 # openCV-model
 openCV常用繁雜功能模組化
-#穩定版本:
+# 穩定版本:
 ROS noetic
 OpenCV 4.2.0
 
@@ -9,16 +9,15 @@ OpenCV 4.2.0
 
 
 
-安裝方式
-1. 將cv_py全部內容下載至工作區域的src資料夾內
+# 安裝方式
+1. `cd <workspace_path>/src`
+2. `git clone
+3. `source ../devel/setup.bash`
+4. `rospack list | grep cv_py`
 
-2. source <workspace_path>/devel/setup.bash
+4. `rosdep install cv_py`
 
-3. rospack list | grep cv_py  # 確認有顯示cv_py
-
-4. rosdep install cv_py  # 安裝套件所需依賴
-
-5. catkin_make
+5. `catkin_make`
 
 
 
