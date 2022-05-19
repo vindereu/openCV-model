@@ -1,7 +1,7 @@
 # openCV-model
 openCV常用繁雜功能模組化
 # 穩定版本:
-ROS noetic
+ROS noetic <br>
 OpenCV 4.2.0
 
 # 注意事項
@@ -17,7 +17,7 @@ OpenCV 4.2.0
 
 4. `rospack list | grep cv_py`
 
-假如上一步有cv_py出現
+假如上一步有cv_py出現<br>
 5. `rosdep install cv_py`
 
 6. `catkin_make`
